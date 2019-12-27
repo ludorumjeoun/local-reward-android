@@ -1,0 +1,2 @@
+include ':app', ':localreward'
+rootProject.name='LocalReward'
