@@ -36,7 +36,7 @@ class RewardBalance {
         }
     }
 
-    val debug = BuildConfig.DEBUG
+    var debug = BuildConfig.DEBUG
     var listener:RewardBalanceListener? = null
     var userId:String? = null
     var videoAdUnitId:String? = null
