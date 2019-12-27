@@ -275,6 +275,7 @@ class RewardBalance {
 
                 override fun onAdLoaded() {
                     log("onAdLoaded")
+                    bannerAdStatus.loaded = true
                     showAdOrWait()
                 }
 
