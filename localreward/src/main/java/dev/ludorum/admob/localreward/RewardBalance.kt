@@ -83,7 +83,7 @@ class RewardBalance {
 
     fun getNumberOfReward(): Int {
         var total:Int = 0;
-        rewardHistory { date, reward, used, remain->
+        rewardHistory { date, reward, usedHistory, remain, used->
             total += remain
         }
         return total;
