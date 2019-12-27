@@ -16,11 +16,11 @@ import org.json.JSONArray
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 
-interface UserTicketListener {
-    fun readyForEarnTicket()
-    fun cannotReadyForEarnTicket()
+interface RewardBalanceListener {
+    fun onReadyForRewardEarning()
+    fun onFailedReadyForRewardEarning()
 
-    fun readyTicketForPay()
+    fun onReadyToPayWithReward()
 }
 
 class RewardBalance {
@@ -31,7 +31,7 @@ class RewardBalance {
     }
 
     val debug = BuildConfig.DEBUG
-    var listener:UserTicketListener? = null
+    var listener:RewardBalanceListener? = null
     var userId:String? = null
     var videoAdUnitId:String? = null
     var bannerAdUnitId:String? = null
@@ -57,7 +57,7 @@ class RewardBalance {
 
     fun readyOrEarnTicket() {
         if (hasTicket()) {
-            listener?.readyTicketForPay()
+            listener?.onReadyToPayWithReward()
         } else {
             readyForEarnTicket()
         }
@@ -189,7 +189,7 @@ class RewardBalance {
                 override fun onRewardedVideoAdClosed() {
                     log("onRewardedVideoAdClosed")
                     if (hasTicket()) {
-                        listener?.readyTicketForPay()
+                        listener?.onReadyToPayWithReward()
                     } else {
                         noVideoAd.set(true)
                         showAdOrWait()
@@ -226,7 +226,7 @@ class RewardBalance {
                 override fun onAdClosed() {
                     log("onAdClosed")
                     if (hasTicket()) {
-                        listener?.readyTicketForPay()
+                        listener?.onReadyToPayWithReward()
                     } else {
                         noBannerAd.set(true)
                         showAdOrWait()
@@ -267,7 +267,7 @@ class RewardBalance {
             }
         }
         if (noVideoAd.get() && noBannerAd.get()) {
-            listener?.cannotReadyForEarnTicket()
+            listener?.onFailedReadyForRewardEarning()
         }
     }
 
@@ -285,7 +285,7 @@ class RewardBalance {
         if (videoAd.isLoaded && !noVideoAd.get()) {
             log("videoAd.isLoaded")
             if (!showAdWhenLoaded) {
-                listener?.readyForEarnTicket()
+                listener?.onReadyForRewardEarning()
                 return
             }
             videoAd.show()
@@ -294,7 +294,7 @@ class RewardBalance {
         if (noVideoAd.get() && bannerAd.isLoaded && !noBannerAd.get()) {
             log("bannerAd.isLoaded")
             if (!showAdWhenLoaded) {
-                listener?.readyForEarnTicket()
+                listener?.onReadyForRewardEarning()
                 return
             }
             bannerAd.show()
@@ -302,9 +302,9 @@ class RewardBalance {
         }
         if (noVideoAd.get() && noBannerAd.get()) {
             if (hasTicket()) {
-                listener?.readyTicketForPay()
+                listener?.onReadyToPayWithReward()
             } else {
-                listener?.cannotReadyForEarnTicket()
+                listener?.onFailedReadyForRewardEarning()
             }
             return
         }
