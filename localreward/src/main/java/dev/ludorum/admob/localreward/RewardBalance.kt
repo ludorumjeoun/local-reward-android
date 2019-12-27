@@ -35,11 +35,16 @@ class RewardBalance {
     var userId:String? = null
     var videoAdUnitId:String? = null
     var bannerAdUnitId:String? = null
+    var rewardExpiryHour: Int = 24;
 
     protected val context: Context
     protected val pref: SharedPreferences
     protected val rewardName: String
     protected var showAdWhenLoaded = false
+
+    protected var todayRewardCount = 0;
+    protected var todayPaymentCount = 0;
+
 
 
     constructor(context: Context, admobAppId:String, rewardName:String) {
@@ -55,37 +60,37 @@ class RewardBalance {
 
 
 
-    fun readyOrEarnTicket() {
-        if (hasTicket()) {
+    fun hasRewardOrEarnReward() {
+        if (hasReward()) {
             listener?.onReadyToPayWithReward()
         } else {
-            readyForEarnTicket()
+            readyForEarnReward()
         }
     }
-    fun earnTicket() {
+    fun earnReward() {
         showAdWhenLoaded = true
         showAdOrWait()
     }
-    fun readyForEarnTicket() {
+    fun readyForEarnReward() {
         showAdWhenLoaded = false
         readyForAds()
     }
 
-    fun hasTicket(): Boolean {
-        return getNumberOfTicket() > 0
+    fun hasReward(): Boolean {
+        return getNumberOfReward() > 0
     }
 
-    fun getNumberOfTicket(): Int {
+    fun getNumberOfReward(): Int {
         var total:Int = 0;
-        ticketHistory { date, value ->
-            total += value
+        rewardHistory { date, reward, used, remain->
+            total += remain
         }
         return total;
     }
 
-    fun useTicket(): Boolean {
-        if (hasTicket()) {
-            putTicket(-1)
+    fun pay(): Boolean {
+        if (hasReward()) {
+            useReward()
             return true
         }
         return false
@@ -104,7 +109,7 @@ class RewardBalance {
     protected fun digest(json:String):String {
         return Digest.md5Hex("$rewardName|$userId|$json")
     }
-    protected fun ticketHistory(cursor:(date:Long, value:Int) -> Unit) {
+    protected fun rewardHistory(cursor:(date:Long, numberOfUsed:Int, numberOfReward:Int, numberOfRemain: Int) -> Unit) {
         val jsonString = pref.getString(KEY_DATA, "[]") ?: "[]";
         val digest = pref.getString(KEY_DIGEST, "") ?: "";
         if (digest(jsonString).equals(digest, true).not()) {
@@ -120,9 +125,11 @@ class RewardBalance {
             try {
                 val dataAndValue = array.getJSONArray(i)
                 val date = dataAndValue.getLong(0);
-                val value = dataAndValue.getInt(1);
-                if ((Date().time - date) < (86400 * 1000 * 3)) {
-                    cursor(date, value)
+                val reward = dataAndValue.getInt(1);
+                val used = dataAndValue.getInt(2);
+                val remain = reward - used;
+                if (remain > 0 && (Date().time - date) < (3600 * 1000 * rewardExpiryHour)) {
+                    cursor(date, remain, reward, used);
                 }
             } catch (e:Throwable) {
                 e.printStackTrace()
@@ -132,14 +139,14 @@ class RewardBalance {
     }
 
     @SuppressLint("ApplySharedPref")
-    protected fun putTicket(amount: Int) {
+    protected fun putReward(amount: Int) {
         val edit = pref.edit()
 
         val newArray = JSONArray()
-        ticketHistory { date, value ->
-            newArray.put(JSONArray().put(date).put(value))
+        rewardHistory { date, reward, used, remain->
+            newArray.put(JSONArray().put(date).put(reward).put(used))
         }
-        newArray.put(JSONArray().put(Date().time).put(amount))
+        newArray.put(JSONArray().put(Date().time).put(amount).put(0))
 
         val newJsonString = newArray.toString()
         edit.putString(KEY_DATA, newJsonString)
@@ -149,13 +156,12 @@ class RewardBalance {
     }
 
     @SuppressLint("ApplySharedPref")
-    protected fun popTicket() {
+    protected fun useReward() {
         val edit = pref.edit()
 
-        val useAmount = 1;
         val newArray = JSONArray()
-        ticketHistory { date, value ->
-            newArray.put(JSONArray().put(date).put(value))
+        rewardHistory { date, reward, used, remain->
+            newArray.put(JSONArray().put(date).put(reward).put(used + 1))
         }
         val newJsonString = newArray.toString()
         edit.putString(KEY_DATA, newJsonString)
@@ -188,7 +194,7 @@ class RewardBalance {
 
                 override fun onRewardedVideoAdClosed() {
                     log("onRewardedVideoAdClosed")
-                    if (hasTicket()) {
+                    if (hasReward()) {
                         listener?.onReadyToPayWithReward()
                     } else {
                         noVideoAd.set(true)
@@ -199,7 +205,7 @@ class RewardBalance {
                 override fun onRewarded(rewardItem: RewardItem) {
                     log("onRewarded(" + rewardItem.type + ", " + rewardItem.amount + ")")
                     if (rewardItem.type.equals(rewardName, ignoreCase = true)) {
-                        putTicket(rewardItem.amount)
+                        putReward(rewardItem.amount)
                     }
                 }
 
@@ -225,7 +231,7 @@ class RewardBalance {
             bannerAd.adListener = object : AdListener() {
                 override fun onAdClosed() {
                     log("onAdClosed")
-                    if (hasTicket()) {
+                    if (hasReward()) {
                         listener?.onReadyToPayWithReward()
                     } else {
                         noBannerAd.set(true)
@@ -245,7 +251,7 @@ class RewardBalance {
 
                 override fun onAdOpened() {
                     log("onAdOpened")
-                    putTicket(1)
+                    putReward(1)
                 }
 
                 override fun onAdLoaded() {
@@ -301,7 +307,7 @@ class RewardBalance {
             return
         }
         if (noVideoAd.get() && noBannerAd.get()) {
-            if (hasTicket()) {
+            if (hasReward()) {
                 listener?.onReadyToPayWithReward()
             } else {
                 listener?.onFailedReadyForRewardEarning()
