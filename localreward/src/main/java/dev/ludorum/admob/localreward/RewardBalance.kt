@@ -192,11 +192,12 @@ class RewardBalance {
 
     protected var videoAd: RewardedVideoAd
     protected var bannerAd: InterstitialAd
-    protected val videoAdStatus = AdStatus.default()
-    protected val bannerAdStatus = AdStatus.default()
+    protected val videoAdStatus = AdStatus()
+    protected val bannerAdStatus = AdStatus()
 
     protected fun readyForAds() {
         if (videoAdStatus.failed.not()) {
+            videoAdStatus.reset();
             videoAd.userId = userId
             videoAd.rewardedVideoAdListener = object : RewardedVideoAdListener {
                 override fun onRewardedVideoAdLoaded() {
@@ -249,6 +250,7 @@ class RewardBalance {
 
         }
         if (bannerAdStatus.failed.not()) {
+            bannerAdStatus.reset()
             bannerAd.setImmersiveMode(true)
             bannerAd.adListener = object : AdListener() {
                 override fun onAdClosed() {
@@ -305,6 +307,7 @@ class RewardBalance {
         log("bannerAd: " + if (bannerAd.isLoaded) "Loaded" else "")
         log("videoAdStatus: " + videoAdStatus.toString())
         log("bannerAdStatus: " + bannerAdStatus.toString())
+        log("showAdWhenLoaded: " + if (showAdWhenLoaded) "Yes" else "No")
         /*
         - videoAd -> Loading
         - bannerAd -> Loading
