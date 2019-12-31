@@ -111,18 +111,21 @@ class RewardBalance {
         return Digest.md5Hex("$rewardName|$userId|$json")
     }
 
-    protected fun rewardHistory(cursor:(date:Long, numberOfReward:Int, usedHistory:JSONArray, remain:Int, used:Int) -> Unit) {
+    protected fun getRewardHistory():JSONArray {
         val jsonString = pref.getString(KEY_REWARD, "[]") ?: "[]";
         val digest = pref.getString(KEY_DIGEST, "") ?: "";
         if (digest(jsonString).equals(digest, true).not()) {
-            return
+            return JSONArray()
         }
         val array = try {
             JSONArray(jsonString)
         } catch(e:Throwable) {
             JSONArray()
         }
-        log(array.toString(4));
+        return array
+    }
+    protected fun rewardHistory(cursor:(date:Long, numberOfReward:Int, usedHistory:JSONArray, remain:Int, used:Int) -> Unit) {
+        val array = getRewardHistory()
         val length = array.length()
         for (i in 0 until length) {
             try {
