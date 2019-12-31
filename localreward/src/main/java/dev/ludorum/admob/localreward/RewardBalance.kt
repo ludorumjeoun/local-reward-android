@@ -111,7 +111,7 @@ class RewardBalance {
         return Digest.md5Hex("$rewardName|$userId|$json")
     }
 
-    protected fun getRewardHistory():JSONArray {
+    fun getRewardHistory():JSONArray {
         val jsonString = pref.getString(KEY_REWARD, "[]") ?: "[]";
         val digest = pref.getString(KEY_DIGEST, "") ?: "";
         if (digest(jsonString).equals(digest, true).not()) {
